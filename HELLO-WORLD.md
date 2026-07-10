@@ -1,8 +1,7 @@
 # 👋 Hello World
 
-Тестовый Pull Request от оргкоманды HackOnVibe.
+This is a test Pull Request from the HackOnVibe organizers.
 
-**Что сделать:** нажми **Merge pull request** — проверишь путь «ветка → PR → merge».
-После подключённого авто-деплоя мёрдж в `main` будет обновлять ваш сайт: https://2026-07-husam-abdulraheem.hackonvibe.com
+**What to do:** click **Merge pull request** below — it checks the whole flow (branch → PR → merge). Once your pipeline is live, merging to `main` updates your team's site.
 
-Дальше удаляй этот файл и строй продукт 🚀
+After that, delete this file and start building your product 🚀
