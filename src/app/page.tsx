@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { analyzeIssueClientSide, applyFixClientSide } from "@/lib/client-analysis";
 
 interface HistoryItem {
   id: string; // unique identifier (e.g. owner/repo#issueNumber)
@@ -128,21 +129,7 @@ export default function Home() {
     setLogIndex(1);
 
     try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ issueUrl, githubToken, geminiApiKey }),
-      });
-
-      let data: any = null;
-      try {
-        data = await res.json();
-      } catch {
-        const text = await res.text();
-        throw new Error(text || "The server returned an empty or invalid response.");
-      }
-
-      if (!res.ok) throw new Error(data?.error || "Analysis failed");
+      const data = await analyzeIssueClientSide({ issueUrl, githubToken, geminiApiKey });
 
       // Complete all remaining logs instantly
       setTerminalLogs(simulatedLogs);
@@ -197,27 +184,13 @@ export default function Home() {
     setPrSteps([...steps]);
 
     try {
-      const res = await fetch("/api/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          owner: result.owner,
-          repo: result.repo,
-          issueNumber: result.issueNumber,
-          fix: result.proposedFix,
-          githubToken,
-        }),
+      const data = await applyFixClientSide({
+        owner: result.owner,
+        repo: result.repo,
+        issueNumber: result.issueNumber,
+        fix: result.proposedFix,
+        githubToken,
       });
-
-      let data: any = null;
-      try {
-        data = await res.json();
-      } catch {
-        const text = await res.text();
-        throw new Error(text || "The server returned an empty or invalid response.");
-      }
-
-      if (!res.ok) throw new Error(data?.error || "Failed to apply fix");
 
       steps[2].status = "success";
       setApplySuccess(data.url);
