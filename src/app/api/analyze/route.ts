@@ -54,8 +54,16 @@ export async function POST(req: Request) {
       geminiApiKey: geminiApiKey || "",
     };
 
-    const finalState = await bugWhispererAgent.invoke(initialState);
-    
+    let finalState: any;
+    try {
+      finalState = await bugWhispererAgent.invoke(initialState);
+    } catch (agentError: any) {
+      console.error('Agent invocation failed:', agentError);
+      return NextResponse.json({
+        error: `Agent execution failed: ${agentError?.message || 'Unknown agent error'}`,
+      }, { status: 500 });
+    }
+
     // Debug logging
     const fs = await import('fs');
     fs.writeFileSync('debug-state.json', JSON.stringify(finalState, null, 2));
@@ -67,8 +75,8 @@ export async function POST(req: Request) {
       issueNumber,
       issueTitle,
       issueBody,
-      targetFiles: finalState.targetFiles,
-      proposedFix: finalState.proposedFix,
+      targetFiles: finalState?.targetFiles || [],
+      proposedFix: finalState?.proposedFix || '',
     });
   } catch (error: any) {
     console.error('Analyze API Error:', error);
