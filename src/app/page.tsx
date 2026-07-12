@@ -134,8 +134,15 @@ export default function Home() {
         body: JSON.stringify({ issueUrl, githubToken, geminiApiKey }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Analysis failed");
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text();
+        throw new Error(text || "The server returned an empty or invalid response.");
+      }
+
+      if (!res.ok) throw new Error(data?.error || "Analysis failed");
 
       // Complete all remaining logs instantly
       setTerminalLogs(simulatedLogs);
@@ -202,8 +209,15 @@ export default function Home() {
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to apply fix");
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text();
+        throw new Error(text || "The server returned an empty or invalid response.");
+      }
+
+      if (!res.ok) throw new Error(data?.error || "Failed to apply fix");
 
       steps[2].status = "success";
       setApplySuccess(data.url);

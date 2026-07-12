@@ -10,6 +10,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing issueUrl' }, { status: 400 });
     }
 
+    if (!githubToken && !process.env.GITHUB_TOKEN) {
+      return NextResponse.json({ error: 'GitHub token is required. Please add your GitHub token in the API Settings panel.' }, { status: 400 });
+    }
+
+    if (!geminiApiKey && !process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ error: 'Gemini API key is required. Please add your Gemini API key in the API Settings panel.' }, { status: 400 });
+    }
+
     // Parse GitHub URL (e.g., https://github.com/owner/repo/issues/123)
     const match = issueUrl.match(/github\.com\/([^\/]+)\/([^\/]+)\/issues\/(\d+)/);
     if (!match) {
@@ -64,6 +72,7 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error('Analyze API Error:', error);
-    return NextResponse.json({ error: error.message || 'An error occurred during analysis' }, { status: 500 });
+    const message = error?.message || 'An error occurred during analysis';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
