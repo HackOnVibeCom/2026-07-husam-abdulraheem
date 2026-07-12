@@ -33,8 +33,14 @@ export function extractImportantLogic(fileContent: string, fileName: string): st
     const variables = sourceFile.getVariableDeclarations();
     for (const variable of variables) {
       const initializer = variable.getInitializer();
-      if (initializer && (Node.isArrowFunction(initializer) || Node.isFunctionExpression(initializer))) {
-        extracted += `${variable.getStatement()?.getText()}\n\n`;
+      const parent = variable.getParent();
+      if (
+        initializer &&
+        (Node.isArrowFunction(initializer) || Node.isFunctionExpression(initializer)) &&
+        parent &&
+        Node.isVariableStatement(parent)
+      ) {
+        extracted += `${parent.getText()}\n\n`;
       }
     }
 

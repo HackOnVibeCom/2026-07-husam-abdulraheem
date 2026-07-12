@@ -32,7 +32,7 @@ const getModel = () => {
 };
 
 // Node 1: Identify target files
-async function identifyFilesNode(state: typeof GraphState.State) {
+export async function identifyFilesNode(state: typeof GraphState.State) {
   const model = getModel();
   
   const prompt = `
@@ -52,7 +52,7 @@ ${state.fileTree.join('\n')}
   let files: string[] = [];
   try {
     let content = response.content as string;
-    const jsonMatch = content.match(/\[.*\]/s);
+    const jsonMatch = content.match(/\[.*\]/);
     if (jsonMatch) {
       files = JSON.parse(jsonMatch[0]);
     } else {
@@ -68,7 +68,7 @@ ${state.fileTree.join('\n')}
 }
 
 // Node 2: Extract AST logic from GitHub
-async function extractLogicNode(state: typeof GraphState.State) {
+export async function extractLogicNode(state: typeof GraphState.State) {
   const { owner, repo, defaultBranch, targetFiles } = state;
   let allExtractedLogic = "";
 
@@ -86,7 +86,7 @@ async function extractLogicNode(state: typeof GraphState.State) {
 }
 
 // Node 3: Generate the Fix
-async function generateFixNode(state: typeof GraphState.State) {
+export async function generateFixNode(state: typeof GraphState.State) {
   const model = getModel();
 
   const prompt = `You are an expert software engineer. Review this issue description and the provided code logic.
