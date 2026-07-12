@@ -4,7 +4,7 @@ import { bugWhispererAgent } from '@/lib/langgraph/agent';
 
 export async function POST(req: Request) {
   try {
-    const { issueUrl } = await req.json();
+    const { issueUrl, githubToken, geminiApiKey } = await req.json();
 
     if (!issueUrl) {
       return NextResponse.json({ error: 'Missing issueUrl' }, { status: 400 });
@@ -21,15 +21,15 @@ export async function POST(req: Request) {
 
     // 1. Fetch Issue Details & Repository Default Branch
     const [issueData, repoData] = await Promise.all([
-      fetchIssueDetails(owner, repo, issueNumber),
-      (await import('@/lib/github')).getOctokit().rest.repos.get({ owner, repo })
+      fetchIssueDetails(owner, repo, issueNumber, githubToken),
+      (await import('@/lib/github')).getOctokit(githubToken).rest.repos.get({ owner, repo })
     ]);
     
     const { title: issueTitle, body: issueBody } = issueData;
     const defaultBranch = repoData.data.default_branch;
 
     // 2. Fetch Repository Tree using correct branch
-    const fileTree = await fetchRepositoryTree(owner, repo, defaultBranch);
+    const fileTree = await fetchRepositoryTree(owner, repo, defaultBranch, githubToken);
 
     // 3. Run LangGraph Workflow
     const initialState = {
@@ -41,7 +41,9 @@ export async function POST(req: Request) {
       defaultBranch,
       targetFiles: [],
       extractedLogic: "",
-      proposedFix: ""
+      proposedFix: "",
+      githubToken: githubToken || "",
+      geminiApiKey: geminiApiKey || "",
     };
 
     const finalState = await bugWhispererAgent.invoke(initialState);
@@ -56,6 +58,7 @@ export async function POST(req: Request) {
       repo,
       issueNumber,
       issueTitle,
+      issueBody,
       targetFiles: finalState.targetFiles,
       proposedFix: finalState.proposedFix,
     });

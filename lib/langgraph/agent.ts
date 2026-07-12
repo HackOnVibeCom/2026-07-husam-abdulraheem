@@ -17,23 +17,26 @@ export const GraphState = Annotation.Root({
   }),
   extractedLogic: Annotation<string>({ reducer: (x, y) => y, default: () => "" }),
   proposedFix: Annotation<string>({ reducer: (x, y) => y, default: () => "" }),
+  githubToken: Annotation<string>({ reducer: (x, y) => y, default: () => "" }),
+  geminiApiKey: Annotation<string>({ reducer: (x, y) => y, default: () => "" }),
 });
 
 // Initialize Gemini model
-const getModel = () => {
-  if (!process.env.GEMINI_API_KEY) {
+const getModel = (geminiApiKey?: string) => {
+  const resolvedKey = geminiApiKey || process.env.GEMINI_API_KEY;
+  if (!resolvedKey) {
     throw new Error("GEMINI_API_KEY is not set");
   }
   return new ChatGoogleGenerativeAI({
     model: "gemini-2.5-flash",
     maxOutputTokens: 8192,
-    apiKey: process.env.GEMINI_API_KEY,
+    apiKey: resolvedKey,
   });
 };
 
 // Node 1: Identify target files
 export async function identifyFilesNode(state: typeof GraphState.State) {
-  const model = getModel();
+  const model = getModel(state.geminiApiKey);
   
   const prompt = `
 You are an expert software engineer.
@@ -69,11 +72,11 @@ ${state.fileTree.join('\n')}
 
 // Node 2: Extract AST logic from GitHub
 export async function extractLogicNode(state: typeof GraphState.State) {
-  const { owner, repo, defaultBranch, targetFiles } = state;
+  const { owner, repo, defaultBranch, targetFiles, githubToken } = state;
   let allExtractedLogic = "";
 
   for (const filePath of targetFiles) {
-    const content = await fetchFileContent(owner, repo, filePath, defaultBranch);
+    const content = await fetchFileContent(owner, repo, filePath, defaultBranch, githubToken);
     if (!content) {
       allExtractedLogic += `--- FILE: ${filePath} ---\n// [Error: Could not fetch file content or file is empty]\n\n`;
       continue;
@@ -87,7 +90,7 @@ export async function extractLogicNode(state: typeof GraphState.State) {
 
 // Node 3: Generate the Fix
 export async function generateFixNode(state: typeof GraphState.State) {
-  const model = getModel();
+  const model = getModel(state.geminiApiKey);
 
   const prompt = `You are an expert software engineer. Review this issue description and the provided code logic.
 Please provide a proposed fix for the issue based on the code context. You may include a brief explanation alongside your code blocks.

@@ -3,7 +3,7 @@ import { createIssueComment } from '@/lib/github';
 
 export async function POST(req: Request) {
   try {
-    const { owner, repo, issueNumber, fix } = await req.json();
+    const { owner, repo, issueNumber, fix, githubToken } = await req.json();
 
     if (!owner || !repo || !issueNumber || !fix) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
@@ -18,7 +18,7 @@ ${fix}
 \`\`\`
 `;
 
-    const result = await createIssueComment(owner, repo, issueNumber, commentBody);
+    const result = await createIssueComment(owner, repo, issueNumber, commentBody, githubToken);
 
     return NextResponse.json({ success: true, url: result.html_url });
   } catch (error: any) {

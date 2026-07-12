@@ -24,6 +24,9 @@ export default function Home() {
   const [applySuccess, setApplySuccess] = useState("");
   const [activeTab, setActiveTab] = useState<"overview" | "code">("overview");
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [githubToken, setGithubToken] = useState("");
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
 
   // Agent execution terminal logs
   const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
@@ -49,7 +52,7 @@ export default function Home() {
     "🎉 State Graph execution completed successfully!"
   ];
 
-  // Load history from localStorage on mount
+  // Load history and saved credentials from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem("bugwhisperer_history");
     if (saved) {
@@ -59,6 +62,11 @@ export default function Home() {
         console.error("Failed to parse history", e);
       }
     }
+
+    const savedGithubToken = localStorage.getItem("bugwhisperer_github_token");
+    const savedGeminiKey = localStorage.getItem("bugwhisperer_gemini_key");
+    if (savedGithubToken) setGithubToken(savedGithubToken);
+    if (savedGeminiKey) setGeminiApiKey(savedGeminiKey);
   }, []);
 
   // Auto-scroll terminal logs
@@ -123,7 +131,7 @@ export default function Home() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ issueUrl }),
+        body: JSON.stringify({ issueUrl, githubToken, geminiApiKey }),
       });
 
       const data = await res.json();
@@ -190,6 +198,7 @@ export default function Home() {
           repo: result.repo,
           issueNumber: result.issueNumber,
           fix: result.proposedFix,
+          githubToken,
         }),
       });
 
@@ -229,9 +238,18 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-zinc-900/60 px-3 py-1.5 rounded-full border border-zinc-800">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] font-mono text-zinc-400">Gemini 2.5 Flash</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowSettings((prev) => !prev)}
+            className="bg-zinc-900/60 px-3 py-1.5 rounded-full border border-zinc-800 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
+          >
+            {showSettings ? "Hide Settings" : "API Settings"}
+          </button>
+          <div className="flex items-center gap-2 bg-zinc-900/60 px-3 py-1.5 rounded-full border border-zinc-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-mono text-zinc-400">Gemini 2.5 Flash</span>
+          </div>
         </div>
       </header>
 
@@ -298,6 +316,52 @@ export default function Home() {
               Analyze bugs, navigate AST structures, and suggest pull requests using an autonomous LangGraph agent.
             </p>
           </div>
+
+          {showSettings && (
+            <div className="dev-card p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">API Credentials</h3>
+                  <p className="text-xs text-zinc-500 mt-1">Enter your GitHub and Gemini keys to use the agent in a production-like workflow.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem("bugwhisperer_github_token", githubToken);
+                    localStorage.setItem("bugwhisperer_gemini_key", geminiApiKey);
+                    setShowSettings(false);
+                  }}
+                  className="secondary-btn text-xs px-3 py-1.5 transition-colors cursor-pointer"
+                >
+                  Save
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                  GitHub Token
+                  <input
+                    type="password"
+                    placeholder="ghp_xxx"
+                    className="mt-2 w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-650 focus:outline-none focus:border-zinc-500 transition-all"
+                    value={githubToken}
+                    onChange={(e) => setGithubToken(e.target.value)}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                  Gemini API Key
+                  <input
+                    type="password"
+                    placeholder="AIza..."
+                    className="mt-2 w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-650 focus:outline-none focus:border-zinc-500 transition-all"
+                    value={geminiApiKey}
+                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* Action input panel */}
           <div className="dev-card p-6 space-y-6">

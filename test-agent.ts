@@ -23,7 +23,9 @@ async function main() {
       "src/core/graph/nodes/cacheLoaderNode.js"
     ],
     extractedLogic: "const dummy = true;",
-    proposedFix: ""
+    proposedFix: "",
+    githubToken: "",
+    geminiApiKey: ""
   };
 
   try {

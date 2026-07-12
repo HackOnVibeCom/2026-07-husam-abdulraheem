@@ -1,14 +1,15 @@
 import { Octokit } from "octokit";
 
-export const getOctokit = () => {
-  if (!process.env.GITHUB_TOKEN) {
+export const getOctokit = (token?: string) => {
+  const resolvedToken = token || process.env.GITHUB_TOKEN;
+  if (!resolvedToken) {
     throw new Error("GITHUB_TOKEN is not set");
   }
-  return new Octokit({ auth: process.env.GITHUB_TOKEN });
+  return new Octokit({ auth: resolvedToken });
 };
 
-export async function fetchIssueDetails(owner: string, repo: string, issueNumber: number) {
-  const octokit = getOctokit();
+export async function fetchIssueDetails(owner: string, repo: string, issueNumber: number, token?: string) {
+  const octokit = getOctokit(token);
   const response = await octokit.rest.issues.get({
     owner,
     repo,
@@ -20,8 +21,8 @@ export async function fetchIssueDetails(owner: string, repo: string, issueNumber
   };
 }
 
-export async function fetchRepositoryTree(owner: string, repo: string, defaultBranch: string = "main") {
-  const octokit = getOctokit();
+export async function fetchRepositoryTree(owner: string, repo: string, defaultBranch: string = "main", token?: string) {
+  const octokit = getOctokit(token);
   const response = await octokit.rest.git.getTree({
     owner,
     repo,
@@ -57,8 +58,8 @@ export async function fetchRepositoryTree(owner: string, repo: string, defaultBr
   return tree;
 }
 
-export async function fetchFileContent(owner: string, repo: string, path: string, branch: string = "main") {
-  const octokit = getOctokit();
+export async function fetchFileContent(owner: string, repo: string, path: string, branch: string = "main", token?: string) {
+  const octokit = getOctokit(token);
   try {
     const response = await octokit.rest.repos.getContent({
       owner,
@@ -76,8 +77,8 @@ export async function fetchFileContent(owner: string, repo: string, path: string
   }
 }
 
-export async function createIssueComment(owner: string, repo: string, issueNumber: number, body: string) {
-  const octokit = getOctokit();
+export async function createIssueComment(owner: string, repo: string, issueNumber: number, body: string, token?: string) {
+  const octokit = getOctokit(token);
   const response = await octokit.rest.issues.createComment({
     owner,
     repo,
