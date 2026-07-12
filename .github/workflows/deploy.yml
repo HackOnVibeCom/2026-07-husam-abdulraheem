@@ -175,30 +175,15 @@ jobs:
           else
             echo "::notice::_headers уже есть в ${DEPLOY_DIR} — не трогаю"
           fi
-      - name: Validate Cloudflare token
-        id: tokencheck
-        if: steps.guard.outputs.ok == 'true'
-        env:
-          TOK: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          if curl -fsS -X GET "https://api.cloudflare.com/client/v4/user/tokens/verify" \
-            -H "Authorization: Bearer $TOK" > /tmp/cf-verify.json 2>/tmp/cf-verify.err; then
-            echo "ok=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Cloudflare token verified"
-          else
-            echo "ok=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Cloudflare token is missing or invalid; deployment will be skipped"
-          fi
       - name: Deploy to Cloudflare Pages
-        if: steps.guard.outputs.ok == 'true' && steps.tokencheck.outputs.ok == 'true'
-        continue-on-error: true
+        if: steps.guard.outputs.ok == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: fa36ce8e651a803962efe3793f9c4b51
           command: pages deploy ${{ steps.detect.outputs.deploy_dir }} --project-name=${{ env.CF_PROJECT }} --branch=main
       - name: Attach custom domain (не для SSR — у них домен держит туннель)
-        if: steps.guard.outputs.ok == 'true' && steps.tokencheck.outputs.ok == 'true' && steps.detect.outputs.ssr != '1'
+        if: steps.guard.outputs.ok == 'true' && steps.detect.outputs.ssr != '1'
         env:
           TOK: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
@@ -209,7 +194,7 @@ jobs:
             && echo "::notice::домен привязан к проекту → https://$DOMAIN" \
             || echo "::notice::домен уже привязан к проекту (норма при повторном деплое)"
       - name: Ensure DNS record (UPSERT CNAME -> pages.dev; не для SSR)
-        if: steps.guard.outputs.ok == 'true' && steps.tokencheck.outputs.ok == 'true' && steps.detect.outputs.ssr != '1'
+        if: steps.guard.outputs.ok == 'true' && steps.detect.outputs.ssr != '1'
         env:
           TOK: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
@@ -250,47 +235,26 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
           RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          # broken=1 → сборка не дала сайт (на домене честная страница). Иначе job упал на ДЕПЛОЕ/конфиге.
           if [ "${{ steps.detect.outputs.broken }}" = "1" ]; then
             STAGE="Build (compiling your project)"
-            DIAG="The build failed — it produced no site. Your live domain now shows an honest error page instead of a broken deploy."
+            DIAG=$'The **build failed** — it produced no site. Your live domain now shows an honest error page (not your broken code). Fix the errors in the log below and push to `main` again.'
           else
             STAGE="Deploy (upload to Cloudflare)"
-            DIAG="The build succeeded but the deployment step failed. Check the Cloudflare token and workflow configuration."
+            DIAG=$'The **build succeeded** but the **deploy step failed**. Most common causes:\n- A repo-level secret `CLOUDFLARE_API_TOKEN` was added — it overrides the working org token and breaks auth (error 10000). Remove it in **Settings → Secrets and variables → Actions**.\n- The workflow `.github/workflows/deploy.yml` was edited (project name / account). **Do not edit it** — it is managed centrally; just push your app code.'
           fi
           LOG=""
-          if [ -f /tmp/build.log ]; then
-            LOG="$(tail -c 3500 /tmp/build.log)"
-          fi
-          BODY_FILE="/tmp/deploy-failure-body.md"
-          cat > "$BODY_FILE" <<EOF
-🚨 **Automatic deploy failed** — your live site was NOT updated.
-
-**Failed at:** ${STAGE}
-**CI run:** ${RUN_URL}
-
-${DIAG}
-
-<details><summary>Build log (tail)</summary>
-
-```
-${LOG}
-```
-</details>
-
----
-Fix the cause and push a new commit to main — the deploy re-runs automatically once it succeeds.
-_(HackOnVibe CI — automatic notification)_
-EOF
+          [ -f /tmp/build.log ] && LOG="$(tail -c 3500 /tmp/build.log)"
+          BODY="$(printf '🚨 **Automatic deploy failed** — your live site was NOT updated.\n\n**Failed at:** %s\n**CI run:** %s\n\n%s\n\n<details><summary>Build log (tail)</summary>\n\n```\n%s\n```\n</details>\n\n---\nFix the cause and **push a new commit to `main`** — the deploy re-runs automatically and this issue closes itself once it succeeds.\n_(HackOnVibe CI — automatic notification)_' "$STAGE" "$RUN_URL" "$DIAG" "$LOG")"
           TITLE="🚨 Deployment failed — action needed"
-          NUM="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search 'in:title Deployment failed' --json number,title --jq '.[] | select(.title=="'"$TITLE"'") | .number' | head -1 || true)"
+          NUM="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search 'in:title Deployment failed' --json number,title --jq ".[] | select(.title==\"$TITLE\") | .number" | head -1)"
           if [ -n "$NUM" ]; then
-            gh issue comment "$NUM" --repo "$GITHUB_REPOSITORY" --body-file "$BODY_FILE" && echo "::notice::updated Issue #$NUM"
+            gh issue comment "$NUM" --repo "$GITHUB_REPOSITORY" --body "$BODY" && echo "::notice::обновил Issue #$NUM"
           else
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$BODY_FILE" --label "" 2>/dev/null \
-              || gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$BODY_FILE"
-            echo "::notice::created deployment failure issue"
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body "$BODY" --label "" 2>/dev/null \
+              || gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body "$BODY"
+            echo "::notice::создал Issue о падении деплоя"
           fi
       - name: On success — close the failure issue if it was open
         if: success() && steps.guard.outputs.ok == 'true'
