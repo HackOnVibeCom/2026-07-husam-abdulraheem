@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+:root {
+  --background: #09090b;
+  --foreground: #f4f4f5;
+  --card: #18181b;
+  --card-foreground: #f4f4f5;
+  --popover: #09090b;
+  --popover-foreground: #f4f4f5;
+  --primary: #2563eb; /* Clean Professional Blue */
+  --primary-foreground: #ffffff;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #71717a;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --destructive: #7f1d1d;
+  --destructive-foreground: #fafafa;
+  --border: #27272a;
+  --input: #18181b;
+  --ring: #3f3f46;
+  --radius: 0.5rem;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-outfit), 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  letter-spacing: -0.01em;
+  background-image: 
+    radial-gradient(ellipse at 50% -20%, rgba(37, 99, 235, 0.08), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Premium flat developer card design */
+.dev-card {
+  background-color: #0c0c0e;
+  border: 1px solid #1e1e21;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  border-radius: var(--radius);
+}
+
+.dev-card-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dev-card-hover:hover {
+  border-color: #3f3f46;
+  background-color: #121215;
+}
+
+/* Linear-like Button styling */
+.action-btn {
+  background-color: #fafafa;
+  color: #09090b;
+  font-weight: 500;
+  border-radius: var(--radius);
+  transition: all 0.15s ease;
+  border: 1px solid #ffffff;
+}
+.action-btn:hover {
+  background-color: #e4e4e7;
+  border-color: #e4e4e7;
+  transform: translateY(-0.5px);
+}
+.action-btn:active {
+  transform: translateY(0);
+}
+
+.secondary-btn {
+  background-color: #18181b;
+  color: #f4f4f5;
+  border: 1px solid #27272a;
+  border-radius: var(--radius);
+  transition: all 0.15s ease;
+}
+.secondary-btn:hover {
+  background-color: #27272a;
+  border-color: #3f3f46;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Code highlight */
+.code-container {
+  background-color: #050506;
+  border: 1px solid #1e1e21;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
